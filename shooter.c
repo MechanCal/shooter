@@ -340,12 +340,12 @@ const int SINTBL2[32] = {
 #define FORMATION_XSPACE 24
 #define FORMATION_YSPACE 30
 
-byte get_attacker_x(byte formation_index) {
+byte get_target_x(byte formation_index) {
   byte column = (formation_index % ENEMIES_PER_ROW);
   return FORMATION_XSPACE*column + FORMATION_X0 + formation_offset_x;
 }
 
-byte get_attacker_y(byte formation_index) {
+byte get_target_y(byte formation_index) {
   byte row = formation_index / ENEMIES_PER_ROW;
   return FORMATION_YSPACE*row + FORMATION_Y0;
 }
@@ -364,9 +364,9 @@ void move_player() {
   if ((joy & PAD_RIGHT) && player_x < 224) player_x = player_x + 3;
   // shoot missile?
   if ((joy & PAD_A) && bullets[PLYRBULLET].ypos == YOFFSCREEN) {
-    bullets[PLYRBULLET].ypos = player_y-8; // must be multiple of missile speed
+    bullets[PLYRBULLET].ypos = player_y-8; // must be multiple of bullet speed
     bullets[PLYRBULLET].xpos = player_x+4; // player X position
-    bullets[PLYRBULLET].dy = -4; // player missile speed
+    bullets[PLYRBULLET].dy = -4; // player bullet speed
   }
   vsprites[PLYRBULLET].x = player_x;
 
@@ -397,7 +397,7 @@ void blowup_at(byte x, byte y) {
   enemy_exploding = 1;
 }
 
-void animate_enemy_explosion() {
+void animate_target_explosion() {
   if (enemy_exploding) {
     // animate next frame
     if (enemy_exploding >= 8) {
@@ -430,9 +430,9 @@ void does_player_shoot_formation() {
       if (formation[index].shape) {
         formation[index].shape = 0;
         enemies_left--;
-        blowup_at(get_attacker_x(index), get_attacker_y(index));
+        blowup_at(get_target_x(index), get_target_y(index));
         hide_player_missile();
-        add_score(2);
+        add_score(10);
       }
     }
   }
@@ -444,7 +444,7 @@ void does_player_shoot_formation() {
 void play_round() {
   register byte framecount;
   register byte t0;
-  byte end_timer = 255;
+  byte end_timer = 30;
   add_score(0);
   setup_formation();
   clrobjs();
@@ -460,7 +460,7 @@ void play_round() {
       does_player_shoot_formation();    
     }
     if (framecount & 3) {
-    animate_enemy_explosion(); // continue...
+    animate_target_explosion(); // continue...
     }
     if (!enemies_left) end_timer--;
       draw_next_row();
@@ -507,7 +507,7 @@ void setup_graphics() {
   // copy sprites
   vram_adr(0x1000);
   vram_write(TILESET, sizeof(TILESET));
-  // write shifted versions of formation ships
+  // write shifted versions of formation targets
   src = SSRC_FORM1*16;
   dest = SDST_FORM1*16;
   for (i=0; i<8; i++) {
