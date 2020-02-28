@@ -22,8 +22,8 @@
 //#link "famitone2.s"
 
 // music and sfx
-//#link "music_dangerstreets.s"
-extern char danger_streets_music_data[];
+//#link "music_aftertherain.s"
+extern char after_the_rain_music_data[];;
 typedef enum { SND_START, SND_HIT, SND_COIN, SND_JUMP } SFXIndex;
 #define COLS 32
 #define ROWS 28
@@ -537,7 +537,7 @@ void setup_graphics() {
 }*/
 
 void setup_sounds() {
-  famitone_init(danger_streets_music_data);
+  famitone_init(after_the_rain_music_data);
   //sfx_init(demo_sounds);
   nmi_set_callback(famitone_update);
 }
