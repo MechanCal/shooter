@@ -53,6 +53,10 @@ const char PALETTE[32] = {
 #define COLOR_BOMB		2
 #define COLOR_EXPLOSION		3
 
+
+unsigned char misses;
+
+
  /*{w:8,h:8,bpp:1,count:128,brev:1,np:2,pofs:8,remap:[0,1,2,4,5,6,7,8,9,10,11,12]}*/
 const char TILESET[128*8*2] = {
 0x00,0x42,0x00,0x18,0x00,0x24,0x00,0x81,0x81,0x00,0x24,0x00,0x18,0x00,0x42,0x00,0x38,0x7C,0x7C,0x7C,0x38,0x00,0x38,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x6C,0x6C,0x48,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x6C,0xFE,0x6C,0xFE,0x6C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0xFE,0xD0,0xFE,0x16,0xFE,0x10,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xCE,0xDC,0x38,0x76,0xE6,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x38,0x6C,0x7C,0xEC,0xEE,0x7E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x38,0x38,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x38,0x70,0x70,0x70,0x70,0x70,0x38,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x70,0x38,0x38,0x38,0x38,0x38,0x30,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x6C,0x38,0x6C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x38,0x38,0xFE,0x38,0x38,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x30,0x60,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x60,0x60,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0E,0x1E,0x3C,0x78,0xF0,0xE0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -207,9 +211,8 @@ typedef struct {
 } Sprite;
 
 #define ENEMIES_PER_ROW 8
-#define ENEMY_ROWS 1
+#define ENEMY_ROWS 3
 #define MAX_IN_FORMATION (ENEMIES_PER_ROW*ENEMY_ROWS)
-#define MAX_ATTACKERS 6
 
 FormationEnemy formation[MAX_IN_FORMATION];
 Bullet bullets[NBULLETS];
@@ -282,7 +285,7 @@ void draw_row(byte row) {
   register byte i;
   register byte x = formation_offset_x / 8;
   byte xd = (formation_offset_x & 7) * 3;
-  byte y = 3 + row * 2;
+  byte y = 3 + row * 5;
   memset(buf, BLANK, sizeof(buf));
   for (i=0; i<ENEMIES_PER_ROW; i++) {
     byte shape = formation[i + row*ENEMIES_PER_ROW].shape;
@@ -333,9 +336,9 @@ const int SINTBL2[32] = {
 #define ICOS(x) ISIN(x+8)
 
 #define FORMATION_X0 0
-#define FORMATION_Y0 19
+#define FORMATION_Y0 26
 #define FORMATION_XSPACE 24
-#define FORMATION_YSPACE 16
+#define FORMATION_YSPACE 30
 
 byte get_attacker_x(byte formation_index) {
   byte column = (formation_index % ENEMIES_PER_ROW);
@@ -357,8 +360,8 @@ void draw_player() {
 void move_player() {
   byte joy = pad_poll(0);
   // move left/right?
-  if ((joy & PAD_LEFT) && player_x > 16) player_x--;
-  if ((joy & PAD_RIGHT) && player_x < 224) player_x++;
+  if ((joy & PAD_LEFT) && player_x > 16) player_x = player_x - 3;
+  if ((joy & PAD_RIGHT) && player_x < 224) player_x = player_x + 3;
   // shoot missile?
   if ((joy & PAD_A) && bullets[PLYRBULLET].ypos == YOFFSCREEN) {
     bullets[PLYRBULLET].ypos = player_y-8; // must be multiple of missile speed
@@ -366,7 +369,6 @@ void move_player() {
     bullets[PLYRBULLET].dy = -4; // player missile speed
   }
   vsprites[PLYRBULLET].x = player_x;
-//#link "music.s"
 
 }
 
@@ -415,8 +417,9 @@ void does_player_shoot_formation() {
   byte mx = bullets[PLYRBULLET].xpos + 4;
   byte my = bullets[PLYRBULLET].ypos;
   signed char row = (my - FORMATION_Y0) / FORMATION_YSPACE;
-  if (bullets[PLYRBULLET].ypos == YOFFSCREEN)
+  if (bullets[PLYRBULLET].ypos == YOFFSCREEN)   {
     return;
+  }
   if (row >= 0 && row < ENEMY_ROWS) {
     // ok if unsigned (in fact, must be due to range)
     byte xoffset = mx - FORMATION_X0 - formation_offset_x;
@@ -449,24 +452,19 @@ void play_round() {
   framecount = 0;
   new_player();
   while (end_timer) {
-    if (framecount == 0 || enemies_left < 8) {
-       // new_attack_wave();
-      }
+    
     move_player();
     move_bullets();
-    if (framecount & 1)
-      does_player_shoot_formation();
-    if ((framecount & 0xf) == 0) {
-      //think_attackers();
-    }
-    else{
     
-    switch (framecount & 3) {
-        case 1: animate_enemy_explosion(); // continue...
+    if (framecount & 1){
+      does_player_shoot_formation();    
+    }
+    if (framecount & 3) {
+    animate_enemy_explosion(); // continue...
     }
     if (!enemies_left) end_timer--;
       draw_next_row();
-    }
+    
     
     vrambuf_flush();
     copy_sprites();
@@ -517,28 +515,13 @@ void setup_graphics() {
     	set_shifted_pattern(&TILESET[src], dest, i);
     dest += 3*16;
   }
-  // activate vram buffer
+  
   vrambuf_clear();
   set_vram_update(updbuf);
 }
-/*void title_screen(void){
-  vram_adr(NTADR_A(4,10));
-  vram_write("Sharpshooter", 12);
-  ppu_on_all();
-  while(1)
-  {
-
-    if(pad_trigger(0)&PAD_START || pad_trigger(0)&PAD_A) {
-	ppu_off(); 
-      	clrscr();
-      	break;
-    }
-  }
-}*/
 
 void setup_sounds() {
   famitone_init(after_the_rain_music_data);
-  //sfx_init(demo_sounds);
   nmi_set_callback(famitone_update);
 }
 
@@ -548,11 +531,13 @@ void main() {
   player_score = 0;
   setup_sounds();
   music_play(0);
-  while (1) {
+  misses = 0;
+  while (misses < 5) {
     pal_all(PALETTE);
     oam_clear();
     oam_size(1); // 8x16 sprites
     clrscr();
     play_round();
   }
+  main();
 }
