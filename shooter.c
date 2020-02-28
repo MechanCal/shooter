@@ -18,11 +18,13 @@
 #include "vrambuf.h"
 //#link "vrambuf.c"
 
-//#link famitone.s
+// famitone2 library
+//#link "famitone2.s"
+
 // music and sfx
 //#link "music_dangerstreets.s"
 extern char danger_streets_music_data[];
-
+typedef enum { SND_START, SND_HIT, SND_COIN, SND_JUMP } SFXIndex;
 #define COLS 32
 #define ROWS 28
 
@@ -205,7 +207,7 @@ typedef struct {
 } Sprite;
 
 #define ENEMIES_PER_ROW 8
-#define ENEMY_ROWS 4
+#define ENEMY_ROWS 1
 #define MAX_IN_FORMATION (ENEMIES_PER_ROW*ENEMY_ROWS)
 #define MAX_ATTACKERS 6
 
@@ -544,6 +546,8 @@ void main() {
   setup_graphics();
   apu_init();
   player_score = 0;
+  setup_sounds();
+  music_play(0);
   while (1) {
     pal_all(PALETTE);
     oam_clear();
