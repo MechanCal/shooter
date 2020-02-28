@@ -18,6 +18,11 @@
 #include "vrambuf.h"
 //#link "vrambuf.c"
 
+//#link famitone.s
+// music and sfx
+//#link "music_dangerstreets.s"
+extern char danger_streets_music_data[];
+
 #define COLS 32
 #define ROWS 28
 
@@ -359,6 +364,8 @@ void move_player() {
     bullets[PLYRBULLET].dy = -4; // player missile speed
   }
   vsprites[PLYRBULLET].x = player_x;
+//#link "music.s"
+
 }
 
 void move_bullets() {
@@ -526,6 +533,12 @@ void setup_graphics() {
     }
   }
 }*/
+
+void setup_sounds() {
+  famitone_init(danger_streets_music_data);
+  //sfx_init(demo_sounds);
+  nmi_set_callback(famitone_update);
+}
 
 void main() {  
   setup_graphics();
